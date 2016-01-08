@@ -4,22 +4,28 @@
 
 #include "Adafruit_NeoPixel.h"
 
-#define LED_PIN 6
-#define NUM_PIX 150
+#define LED_PIN   6
+#define NUM_PIX   150
 #define MIDI_BAUD 31250
+#define NOTE_ON   0x90
+#define NOTE_OFF  0x80
 
 struct Color {byte r, g, b;};
 
 Adafruit_NeoPixel light = Adafruit_NeoPixel(NUM_PIX, LED_PIN);
 
 void setup() {
-    //Serial.begin(MIDI_BAUD);
+    Serial.begin(MIDI_BAUD);
     light.begin();
     light.setBrightness(100);
     light.show();
 }
 
-void loop() {
+void loop () {
+    midiloop();
+}
+
+void testloop() {
     fadeTo(1000, uintToColor(Wheel(0)));
     delay(1000);
     fadeTo(1000, uintToColor(Wheel(127)));
@@ -32,6 +38,26 @@ void loop() {
     delay(5000);
 }
 
+void midiloop() {
+    do {
+        if (Serial.available()) {
+            //MIDI containts of 3 bytes indicating the note (1-127), the
+            //command (note on, off, etc.) and the velocity (1-127)
+            byte command = Serial.read();
+            byte note = Serial.read();
+            byte velocity = Serial.read();
+            if (command == NOTE_ON) {
+                //Note on turns on one pixel with a color related to the note
+                //itself and the velocity the key was "pressed" at
+                light.setPixelColor(note, Wheel((note * velocity) % 255));
+            } else if (command == NOTE_OFF) {
+                light.setPixelColor(note, 0);
+            }
+        }
+    } while (Serial.available() > 2);//when at least three bytes available
+}
+
+/* EFFECTS CREAED BY MITCHELL KATZ */
 void fadeTo(int ms, Color aColor) {
     Color c = uintToColor(light.getPixelColor(0));
     int cycles = ms / 50;
@@ -48,6 +74,10 @@ void fadeTo(int ms, Color aColor) {
         light.show();
         delay(50);
     }
+    for (int i = 0; i < NUM_PIX; i++) {
+            light.setPixelColor(i, aColor.r, aColor.g, aColor.b);
+    }
+    light.show();
 }
 
 void lightOff() {
@@ -64,6 +94,8 @@ void setColor(Color c) {
     light.show();
 }
 
+//Unpack the bitpacked uint32_t representation of a color
+//representation format 0x00RRGGBB
 Color uintToColor(uint32_t color) {
     Color c;
     c.b = color & 0xFF;
@@ -72,7 +104,7 @@ Color uintToColor(uint32_t color) {
     return c;
 }
 
-/**EFFECTS**/
+/**EFFECTS CREATED BY NEOPIXEL**/
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
     for(uint16_t i=0; i<light.numPixels(); i++) {
