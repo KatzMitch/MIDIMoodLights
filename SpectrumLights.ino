@@ -1,4 +1,4 @@
-// MIDILights.ino
+// SpectrumLights.ino
 // Mitchell Katz
 // Wednesday, January 6, 2016
 
@@ -6,7 +6,6 @@
 
 #define LED_PIN   6
 #define NUM_PIX   150
-#define MIDI_BAUD 31250
 #define NOTE_ON   0x90
 #define NOTE_OFF  0x80
 
@@ -15,14 +14,13 @@ struct Color {byte r, g, b;};
 Adafruit_NeoPixel light = Adafruit_NeoPixel(NUM_PIX, LED_PIN);
 
 void setup() {
-    Serial.begin(MIDI_BAUD);
     light.begin();
     light.setBrightness(100);
     light.show();
 }
 
 void loop () {
-    midiloop();
+    testloop();
 }
 
 void testloop() {
@@ -38,29 +36,12 @@ void testloop() {
     delay(5000);
 }
 
-void midiloop() {
-    do {
-        if (Serial.available()) {
-            //MIDI containts of 3 bytes indicating the note (1-127), the
-            //command (note on, off, etc.) and the velocity (1-127)
-            byte command = Serial.read();
-            byte note = Serial.read();
-            byte velocity = Serial.read();
-            if (command == NOTE_ON) {
-                //Note on turns on one pixel with a color related to the note
-                //itself and the velocity the key was "pressed" at
-                light.setPixelColor(note, Wheel((note * velocity) % 255));
-            } else if (command == NOTE_OFF) {
-                light.setPixelColor(note, 0);
-            }
-        }
-    } while (Serial.available() > 2);//when at least three bytes available
-}
-
 /* EFFECTS CREAED BY MITCHELL KATZ */
 void fadeTo(int ms, Color aColor) {
     Color c = uintToColor(light.getPixelColor(0));
+    //50ms per level gives a nice, non-jumpy fade
     int cycles = ms / 50;
+    //Calculate how much each color needs to decrease per cycle
     Color decrements = {(c.r - aColor.r) / cycles,
                         (c.b - aColor.b) / cycles,
                         (c.g - aColor.g) / cycles};
@@ -74,6 +55,8 @@ void fadeTo(int ms, Color aColor) {
         light.show();
         delay(50);
     }
+
+    //Ensure all pixels are at the desired level
     for (int i = 0; i < NUM_PIX; i++) {
             light.setPixelColor(i, aColor.r, aColor.g, aColor.b);
     }

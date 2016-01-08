@@ -4,7 +4,7 @@ MIDI Mood Lights
 
 
 This is an arduino project that I am creating for my bedroom where an arduino
-powers lights that are a responsive visualization to music, interpreted via
-the MIDI protocol
+powers lights that are a responsive visualization to music, analog sound is
+input and analyzed via the fourier transormation.
 
-File: MIDILights.ino
+File: SpectrumLights.ino
